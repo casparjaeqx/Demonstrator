@@ -1,218 +1,160 @@
-# 🤟 NGT Real-Time Gebarentaalherkenning
+# NGT Sign Language Recogniser
 
-Een real-time herkenningssysteem voor **Nederlandse Gebarentaal (NGT)** via een gewone webcam. Het systeem combineert **MediaPipe** voor handlandmark-detectie met een **LSTM-neuraal netwerk** voor temporele gebarenclassificatie.
-
-> HBO-ICT innovator/demonstratorproject — gebouwd in Python 3.11
+A real-time Dutch Sign Language (NGT — Nederlandse Gebarentaal) recognition system built with MediaPipe and a custom LSTM neural network. Developed as an HBO Inovate demonstrator project.
 
 ---
 
-## 📋 Inhoudsopgave
+## How it works
 
-- [Overzicht](#overzicht)
-- [Pipeline](#pipeline)
-- [Projectstructuur](#projectstructuur)
-- [Installatie](#installatie)
-- [Gebruik](#gebruik)
-- [Data verzamelen](#data-verzamelen)
-- [Model trainen](#model-trainen)
-- [Live inferentie](#live-inferentie)
-- [Technische details](#technische-details)
-- [Afhankelijkheden](#afhankelijkheden)
+The system uses a five-phase pipeline:
+
+1. **Landmark detection** — MediaPipe extracts 225 keypoints per frame from the webcam feed (33 body pose points + 21 left hand + 21 right hand, each with x, y, z coordinates)
+2. **Data extraction** — keypoint sequences are extracted from SignBank videos and saved as numpy arrays
+3. **Augmentation** — each sequence is artificially expanded into ~11 variations to compensate for limited training data
+4. **Training** — a two-layer LSTM network learns to classify 30-frame sequences into sign labels
+5. **Live inference** — the trained model runs on a live webcam feed and predicts signs in real time
 
 ---
 
-## Overzicht
+## Requirements
 
-Dit project herkent dynamische NGT-gebaren in real-time via een webcam. Het pipeline verwerkt videoframes naar skelet-landmarks, slaat keypoint-sequenties op, traint een LSTM-model en voert live classificatie uit.
+### Python version
+**Python 3.11** is required. MediaPipe does not support Python 3.12 or higher.
+Download: https://www.python.org/downloads/release/python-3119/
 
-De trainingsdata is afkomstig uit de **SignBank NGT-database** (signbank.cls.ru.nl), waarbij per gebaar video-opnames vanuit drie camerahoeken worden gebruikt.
-
----
-
-## Pipeline
-
-```
-Webcam / Video
-      │
-      ▼
-MediaPipe Landmarks          ← hand (21 punten × 2) + pose (33 punten)
-      │
-      ▼
-Keypoint-extractie           ← (30 frames × 225 features) per sequentie
-      │
-      ▼
-Data-augmentatie             ← ×11 per originele sequentie
-      │
-      ▼
-LSTM-training                ← TensorFlow/Keras
-      │
-      ▼
-Live inferentie              ← real-time classificatie via webcam
-```
-
----
-
-## Projectstructuur
-
-```
-ngt-herkenning/
-├── data/                        # Trainingsdata (per gebaar een submap)
-│   ├── hallo/
-│   ├── bedankt/
-│   └── ...
-├── models/                      # Getrainde LSTM-modellen (.h5)
-├── scripts/
-│   ├── landmark_viewer.py       # Fase 1: live landmark-visualisatie
-│   ├── extract_keypoints.py     # Fase 2: keypoints uit video's extraheren
-│   ├── train_lstm.py            # Fase 3: LSTM-model trainen
-│   ├── live_inference.py        # Fase 4: live herkenning via webcam
-│   ├── signbank_downloader.py   # SignBank video-downloader (cookie-auth)
-│   └── augment_data.py          # Data-augmentatie
-├── tasks/                       # MediaPipe Task-modelbestanden
-│   ├── hand_landmarker.task
-│   └── pose_landmarker_lite.task
-├── requirements.txt
-└── README.md
-```
-
----
-
-## Installatie
-
-> ⚠️ **Python 3.11 is vereist.** MediaPipe is niet compatibel met Python 3.12+.
-
-### 1. Virtuele omgeving aanmaken
-
+### Setup
 ```bash
 py -3.11 -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # macOS/Linux
+venv\Scripts\activate
+pip install mediapipe opencv-python tensorflow scikit-learn requests beautifulsoup4
 ```
 
-### 2. Afhankelijkheden installeren
-
-```bash
-pip install -r requirements.txt
-```
-
-### 3. MediaPipe Task-modellen downloaden
-
-Download de benodigde modelbestanden en plaats ze in de `tasks/` map:
-
-- [`hand_landmarker.task`](https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task)
-- [`pose_landmarker_lite.task`](https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task)
+### Model files
+The following MediaPipe model files are included in the repository:
+- `hand_landmarker.task`
+- `pose_landmarker_lite.task`
 
 ---
 
-## Gebruik
+## Project structure
 
-### Fase 1 — Landmark-visualisatie
-
-Controleer of MediaPipe correct werkt door landmarks live op het webcambeeld te tekenen:
-
-```bash
-python scripts/landmark_viewer.py
 ```
-
-### Fase 2 — Data extractie uit video's
-
-Verwerk video's in `data/<gebaar>/` naar keypoint-sequenties:
-
-```bash
-python scripts/extract_keypoints.py
-```
-
-Per gebaar worden `.npy`-bestanden opgeslagen als arrays van vorm `(30, 225)`.
-
-### Fase 3 — Model trainen
-
-Train het LSTM-model op de geëxtraheerde keypoints:
-
-```bash
-python scripts/train_lstm.py
-```
-
-Het getrainde model wordt opgeslagen in `models/`.
-
-### Fase 4 — Live inferentie
-
-Start real-time gebarenherkenning via de webcam:
-
-```bash
-python scripts/live_inference.py
+Demonstrator/
+├── Landmark recognition.py     # Phase 1 — live landmark viewer
+├── phase2_extract.py           # Phase 2 — extract keypoints from videos
+├── phase3_train.py             # Phase 3 — train the LSTM model
+├── phase4_inference.py         # Phase 4 — live sign recognition
+├── augment.py                  # Data augmentation
+├── download_signbank.py        # Download videos from SignBank
+├── record_self.py              # Record your own signing for training
+├── hand_landmarker.task        # MediaPipe hand model
+├── pose_landmarker_lite.task   # MediaPipe pose model
+├── signbank_cookies.txt        # SignBank session cookies (not committed)
+├── ngt.ecv                     # NGT sign database
+├── data/                       # Downloaded videos (one subfolder per sign)
+├── dataset/                    # Extracted keypoint sequences
+├── dataset_augmented/          # Augmented sequences
+└── model/                      # Trained model and labels
+    ├── ngt_model.h5
+    └── labels.txt
 ```
 
 ---
 
-## Data verzamelen
+## Usage
 
-### SignBank downloader
+### Step 1 — Download sign videos from SignBank
+```bash
+python download_signbank.py
+```
+Requires a `signbank_cookies.txt` file exported from your browser while logged into SignBank. Use a browser extension such as "Get cookies.txt LOCALLY" (Chrome) or "cookies.txt" (Firefox).
 
-Video's worden automatisch gedownload vanuit de NGT SignBank-database. Omdat SignBank inloggen vereist, gebruik je geëxporteerde browsercookies (Netscape-formaat).
+### Step 2 — Extract keypoints from videos
+```bash
+python phase2_extract.py
+```
+Processes all videos in `data/` and saves keypoint sequences to `dataset/`.
 
-1. Log in op [signbank.cls.ru.nl](https://signbank.cls.ru.nl) in je browser
-2. Exporteer je cookies als `cookies.txt` (bijv. met de extensie *Get cookies.txt LOCALLY*)
-3. Plaats `cookies.txt` in de projectroot
-4. Voer de downloader uit:
+### Step 3 — Augment the dataset
+```bash
+python augment.py
+```
+Expands the dataset from `dataset/` to `dataset_augmented/` using 7 augmentation techniques.
+
+### Step 4 — Train the model
+```bash
+python phase3_train.py
+```
+Trains an LSTM on the augmented dataset and saves the model to `model/`.
+
+### Step 5 — Run live inference
+```bash
+python phase4_inference.py
+```
+Opens the webcam feed. Press **Space** to capture a 30-frame window and get a prediction.
+
+---
+
+## Adding new signs
+
+1. Run `download_signbank.py` and search for the new sign
+2. Run `phase2_extract.py` to extract keypoints
+3. Optionally record yourself signing with `record_self.py`
+4. Run `augment.py` then `phase3_train.py` to retrain
+
+---
+
+## Improving accuracy
+
+If the model predicts the wrong sign, the most effective fix is to record yourself performing each sign using `record_self.py` and retrain. The model is initially trained on SignBank videos which may look different from your own signing.
 
 ```bash
-python scripts/signbank_downloader.py
+python record_self.py
 ```
 
-Per gebaar worden opnames vanuit drie camerahoeken (midden, links, rechts) gedownload.
+Use number keys to select a sign, press **R** to record a 30-frame sequence, repeat 10–15 times per sign, then retrain.
 
 ---
 
-## Model trainen
+## Controls
 
-Het LSTM-model verwerkt sequenties van **30 frames**, elk bestaande uit:
+### Live inference (`phase4_inference.py`)
+| Key | Action |
+|-----|--------|
+| `Space` | Capture a 30-frame window and predict |
+| `C` | Clear current result |
+| `S` | Save a snapshot |
+| `Q` | Quit |
 
-| Bron | Punten | Features |
-|---|---|---|
-| Linkerhand (MediaPipe) | 21 | 63 (x, y, z) |
-| Rechterhand (MediaPipe) | 21 | 63 (x, y, z) |
-| Pose (MediaPipe) | 33 | 99 (x, y, z) |
-| **Totaal** | | **225 per frame** |
+### Landmark viewer (`Landmark recognition.py`)
+| Key | Action |
+|-----|--------|
+| `H` | Toggle hand landmarks |
+| `P` | Toggle pose landmarks |
+| `S` | Save a snapshot |
+| `Q` | Quit |
 
-### Data-augmentatie
-
-Per originele sequentie worden automatisch **11 varianten** gegenereerd via:
-
-- Gaussische ruis
-- Schaling
-- Snelheidsvariatie
-- Tijdsverschuiving
-- Rotatie
-- Spiegeling
-- Willekeurige combinaties
-
----
-
-## Technische details
-
-| Onderdeel | Keuze | Reden |
-|---|---|---|
-| Landmark-detectie | MediaPipe Tasks API v0.10.33 | Efficiënte twee-staps pipeline, 21 handpunten |
-| Tijdreeksclassificatie | LSTM (Keras) | Geschikt voor variabele gebaardynamiek |
-| Invoerformaat | `(30, 225)` numpy-arrays | 30 frames, 225 features per frame |
-| Python-versie | 3.11 | MediaPipe-compatibiliteit |
+### Self-recording (`record_self.py`)
+| Key | Action |
+|-----|--------|
+| `1–9` | Select sign |
+| `R` | Start/cancel recording |
+| `Q` | Quit |
 
 ---
 
-## Afhankelijkheden
+## Data sources
 
-```
-mediapipe==0.10.33
-opencv-python
-tensorflow
-scikit-learn
-numpy
-requests
-browser-cookie3
-```
+Sign videos are sourced from the [NGT dataset in Global Signbank](https://signbank.cls.ru.nl/datasets/NGT), a lexical database developed by Radboud University Nijmegen and the University of Amsterdam. Access requires registration.
 
 ---
 
-## Licentie
+## Tech stack
 
-Dit project is ontwikkeld als onderdeel van een HBO-ICT studieopdracht. De trainingsdata is afkomstig uit de NGT SignBank-database van de Radboud Universiteit Nijmegen en Universiteit Amsterdam.
+| Component | Library |
+|-----------|---------|
+| Landmark detection | MediaPipe 0.10.33 |
+| Video / webcam | OpenCV |
+| Neural network | TensorFlow / Keras (LSTM) |
+| Data processing | NumPy, scikit-learn |
+| SignBank scraping | requests, BeautifulSoup |
