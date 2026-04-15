@@ -210,7 +210,7 @@ def main():
     hand_detector = mp_vision.HandLandmarker.create_from_options(hand_options)
     pose_detector  = mp_vision.PoseLandmarker.create_from_options(pose_options)
 
-    cap = cv2.VideoCapture(1)
+    cap = cv2.VideoCapture(0)
     if not cap.isOpened():
         print("Error: could not open webcam.")
         return
