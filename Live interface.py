@@ -147,11 +147,28 @@ def draw_logo(frame, logo):
         return
     h, w = frame.shape[:2]
     lh, lw = logo.shape[:2]
-    # Position: top right with 10px padding
-    x = w - lw - 10
-    y = 10
-    # Handle transparency if PNG, otherwise just overlay
-    frame[y:y+lh, x:x+lw] = logo
+    
+    # Positie van het logo: rechtsboven met 10px padding
+    logo_x = w - lw - 10
+    logo_y = 10
+    
+    # Teken het logo op het frame
+    frame[logo_y:logo_y+lh, logo_x:logo_x+lw] = logo
+
+    # Tekst toevoegen onder het logo
+    poc_text = "Proof of Concept"
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = 0.3
+    thickness = 1
+    text_color = (200, 200, 200) # Lichtgrijs
+
+    # Bereken tekstgrootte om deze uit te lijnen (gecentreerd onder logo)
+    text_size = cv2.getTextSize(poc_text, font, font_scale, thickness)[0]
+    text_x = logo_x + (lw - text_size[0]) // 2
+    text_y = logo_y + lh + 20 # 20 pixels onder het logo
+
+    # Teken de tekst
+    cv2.putText(frame, poc_text, (text_x, text_y), font, font_scale, text_color, thickness)
 
 def draw_hud(frame, fps, num_hands, pose_detected):
     cv2.putText(frame, f"FPS: {fps:.0f}", (10, 30),
@@ -210,7 +227,7 @@ def main():
     hand_detector = mp_vision.HandLandmarker.create_from_options(hand_options)
     pose_detector  = mp_vision.PoseLandmarker.create_from_options(pose_options)
 
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(1)
     if not cap.isOpened():
         print("Error: could not open webcam.")
         return
