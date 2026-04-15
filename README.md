@@ -1,88 +1,218 @@
-# NGT Sign Language Demonstrator — Phase 1
+# 🤟 NGT Real-Time Gebarentaalherkenning
 
-A real-time landmark viewer for NGT (Dutch Sign Language) recognition, built with MediaPipe and OpenCV.
+Een real-time herkenningssysteem voor **Nederlandse Gebarentaal (NGT)** via een gewone webcam. Het systeem combineert **MediaPipe** voor handlandmark-detectie met een **LSTM-neuraal netwerk** voor temporele gebarenclassificatie.
+
+> HBO-ICT innovator/demonstratorproject — gebouwd in Python 3.11
 
 ---
 
-## Requirements
+## 📋 Inhoudsopgave
 
-### Python version
-**Python 3.11** is required. MediaPipe does not support Python 3.12 or higher.
-Download: https://www.python.org/downloads/release/python-3119/
+- [Overzicht](#overzicht)
+- [Pipeline](#pipeline)
+- [Projectstructuur](#projectstructuur)
+- [Installatie](#installatie)
+- [Gebruik](#gebruik)
+- [Data verzamelen](#data-verzamelen)
+- [Model trainen](#model-trainen)
+- [Live inferentie](#live-inferentie)
+- [Technische details](#technische-details)
+- [Afhankelijkheden](#afhankelijkheden)
 
-### Python packages
-Install inside a virtual environment:
+---
+
+## Overzicht
+
+Dit project herkent dynamische NGT-gebaren in real-time via een webcam. Het pipeline verwerkt videoframes naar skelet-landmarks, slaat keypoint-sequenties op, traint een LSTM-model en voert live classificatie uit.
+
+De trainingsdata is afkomstig uit de **SignBank NGT-database** (signbank.cls.ru.nl), waarbij per gebaar video-opnames vanuit drie camerahoeken worden gebruikt.
+
+---
+
+## Pipeline
+
+```
+Webcam / Video
+      │
+      ▼
+MediaPipe Landmarks          ← hand (21 punten × 2) + pose (33 punten)
+      │
+      ▼
+Keypoint-extractie           ← (30 frames × 225 features) per sequentie
+      │
+      ▼
+Data-augmentatie             ← ×11 per originele sequentie
+      │
+      ▼
+LSTM-training                ← TensorFlow/Keras
+      │
+      ▼
+Live inferentie              ← real-time classificatie via webcam
+```
+
+---
+
+## Projectstructuur
+
+```
+ngt-herkenning/
+├── data/                        # Trainingsdata (per gebaar een submap)
+│   ├── hallo/
+│   ├── bedankt/
+│   └── ...
+├── models/                      # Getrainde LSTM-modellen (.h5)
+├── scripts/
+│   ├── landmark_viewer.py       # Fase 1: live landmark-visualisatie
+│   ├── extract_keypoints.py     # Fase 2: keypoints uit video's extraheren
+│   ├── train_lstm.py            # Fase 3: LSTM-model trainen
+│   ├── live_inference.py        # Fase 4: live herkenning via webcam
+│   ├── signbank_downloader.py   # SignBank video-downloader (cookie-auth)
+│   └── augment_data.py          # Data-augmentatie
+├── tasks/                       # MediaPipe Task-modelbestanden
+│   ├── hand_landmarker.task
+│   └── pose_landmarker_lite.task
+├── requirements.txt
+└── README.md
+```
+
+---
+
+## Installatie
+
+> ⚠️ **Python 3.11 is vereist.** MediaPipe is niet compatibel met Python 3.12+.
+
+### 1. Virtuele omgeving aanmaken
+
 ```bash
 py -3.11 -m venv venv
-venv\Scripts\activate
-pip install mediapipe opencv-python
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # macOS/Linux
 ```
 
-### Model files
-The required model files are included in the repository — no download needed:
-- `hand_landmarker.task`
-- `pose_landmarker_lite.task`
+### 2. Afhankelijkheden installeren
 
-Make sure they stay in the **same folder as the script**.
-
----
-
-## Running the script
-
-Make sure the venv is active (you should see `(venv)` in your terminal), then:
 ```bash
-python "Landmark recognition.py"
+pip install -r requirements.txt
+```
+
+### 3. MediaPipe Task-modellen downloaden
+
+Download de benodigde modelbestanden en plaats ze in de `tasks/` map:
+
+- [`hand_landmarker.task`](https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task)
+- [`pose_landmarker_lite.task`](https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task)
+
+---
+
+## Gebruik
+
+### Fase 1 — Landmark-visualisatie
+
+Controleer of MediaPipe correct werkt door landmarks live op het webcambeeld te tekenen:
+
+```bash
+python scripts/landmark_viewer.py
+```
+
+### Fase 2 — Data extractie uit video's
+
+Verwerk video's in `data/<gebaar>/` naar keypoint-sequenties:
+
+```bash
+python scripts/extract_keypoints.py
+```
+
+Per gebaar worden `.npy`-bestanden opgeslagen als arrays van vorm `(30, 225)`.
+
+### Fase 3 — Model trainen
+
+Train het LSTM-model op de geëxtraheerde keypoints:
+
+```bash
+python scripts/train_lstm.py
+```
+
+Het getrainde model wordt opgeslagen in `models/`.
+
+### Fase 4 — Live inferentie
+
+Start real-time gebarenherkenning via de webcam:
+
+```bash
+python scripts/live_inference.py
 ```
 
 ---
 
-## Controls
+## Data verzamelen
 
-| Key | Action |
-|-----|--------|
-| `Q` | Quit |
-| `H` | Toggle hand landmarks on/off |
-| `P` | Toggle pose landmarks on/off |
-| `S` | Save a snapshot of the current frame |
+### SignBank downloader
+
+Video's worden automatisch gedownload vanuit de NGT SignBank-database. Omdat SignBank inloggen vereist, gebruik je geëxporteerde browsercookies (Netscape-formaat).
+
+1. Log in op [signbank.cls.ru.nl](https://signbank.cls.ru.nl) in je browser
+2. Exporteer je cookies als `cookies.txt` (bijv. met de extensie *Get cookies.txt LOCALLY*)
+3. Plaats `cookies.txt` in de projectroot
+4. Voer de downloader uit:
+
+```bash
+python scripts/signbank_downloader.py
+```
+
+Per gebaar worden opnames vanuit drie camerahoeken (midden, links, rechts) gedownload.
 
 ---
 
-## Changing the camera
+## Model trainen
 
-On line 141 of the script, change the camera index if needed:
-```python
-cap = cv2.VideoCapture(0)  # 0 = default, try 1 or 2 for other cameras
+Het LSTM-model verwerkt sequenties van **30 frames**, elk bestaande uit:
+
+| Bron | Punten | Features |
+|---|---|---|
+| Linkerhand (MediaPipe) | 21 | 63 (x, y, z) |
+| Rechterhand (MediaPipe) | 21 | 63 (x, y, z) |
+| Pose (MediaPipe) | 33 | 99 (x, y, z) |
+| **Totaal** | | **225 per frame** |
+
+### Data-augmentatie
+
+Per originele sequentie worden automatisch **11 varianten** gegenereerd via:
+
+- Gaussische ruis
+- Schaling
+- Snelheidsvariatie
+- Tijdsverschuiving
+- Rotatie
+- Spiegeling
+- Willekeurige combinaties
+
+---
+
+## Technische details
+
+| Onderdeel | Keuze | Reden |
+|---|---|---|
+| Landmark-detectie | MediaPipe Tasks API v0.10.33 | Efficiënte twee-staps pipeline, 21 handpunten |
+| Tijdreeksclassificatie | LSTM (Keras) | Geschikt voor variabele gebaardynamiek |
+| Invoerformaat | `(30, 225)` numpy-arrays | 30 frames, 225 features per frame |
+| Python-versie | 3.11 | MediaPipe-compatibiliteit |
+
+---
+
+## Afhankelijkheden
+
 ```
-
-To find which index your camera uses, run:
-```python
-import cv2
-for i in range(5):
-    cap = cv2.VideoCapture(i)
-    if cap.isOpened():
-        print(f"Camera found at index {i}")
-        cap.release()
+mediapipe==0.10.33
+opencv-python
+tensorflow
+scikit-learn
+numpy
+requests
+browser-cookie3
 ```
 
 ---
 
-## Project structure
+## Licentie
 
-```
-Demonstrator/
-├── Landmark recognition.py     # Main script
-├── hand_landmarker.task        # Hand detection model
-├── pose_landmarker_lite.task   # Pose detection model
-├── venv/                       # Python 3.11 virtual environment
-└── README.md                   # This file
-```
-
----
-
-## Troubleshooting
-
-**`No module named mediapipe`** — make sure the venv is activated before running the script.
-
-**`Could not open webcam`** — try changing the camera index from `0` to `1`.
-
-**Slow performance** — the script uses `model_complexity=1` by default. Change it to `0` for faster but less accurate detection.
+Dit project is ontwikkeld als onderdeel van een HBO-ICT studieopdracht. De trainingsdata is afkomstig uit de NGT SignBank-database van de Radboud Universiteit Nijmegen en Universiteit Amsterdam.
