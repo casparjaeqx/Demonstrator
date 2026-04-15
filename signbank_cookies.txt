@@ -1,6 +1,0 @@
-# Netscape HTTP Cookie File
-# https://curl.haxx.se/rfc/cookie_spec.html
-# This is a generated file! Do not edit.
-
-signbank.cls.ru.nl	FALSE	/	FALSE	1806307066	csrftoken	1rAno0Yk7DnfJQcBrj5JqRFSRolpq31K
-signbank.cls.ru.nl	FALSE	/	FALSE	1776066815	sessionid	3z5ygpyzeprl695lz32qstnpbk8hilaw
