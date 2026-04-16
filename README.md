@@ -62,29 +62,29 @@ Demonstrator/
 
 ## Gebruik
 
-### Stap 1 — Download sign videos
+### Stap 1 — Download sign videos (Optional)
 ```bash
-python download_signbank.py
+Singbank video dowloader.py
 ```
 
 ### Stap 2 — Extract keypoints
 ```bash
-python phase2_extract.py
+Data extract video.py
 ```
 
 ### Stap 3 — Augment dataset
 ```bash
-python augment.py
+Data Argumentation.py
 ```
 
 ### Stap 4 — Train model
 ```bash
-python phase3_train.py
+Model train.py
 ```
 
 ### Stap 5 — Live inference
 ```bash
-python phase4_inference.py
+Live interface.py
 ```
 
 ---
