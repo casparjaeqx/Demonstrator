@@ -98,6 +98,12 @@ Live interface.py
 
 ---
 
+## Camera veranderen
+
+Op regel 230 van Live interface.py kan gebruikte camera veranderd worden door het nummer te veranderen.
+
+---
+
 ## Nauwkeurigheid verbeteren
 
 Gebruik `record_self.py` om eigen data toe te voegen en train opnieuw.
